@@ -95,19 +95,19 @@ class n_body_simulation():
         self.get_data()
         num_of_iter = floor(sim_time / self.h)
         if (alg == "leapfrog"):
-            print("leapfrog simulation:\n")
+            #print("leapfrog simulation:\n")
             self.leapfrog_pre_first_step()
             for i in range(num_of_iter):
                 self.leapfrog_step()
         else:
-            print("euler simulation:\n")
+            #print("euler simulation:\n")
             for i in range(num_of_iter):
                 self.euler_step()
-        for i in range(self.num_planets):    
-            print(self.planet_lst[i].name, "simulated location is: " , self.planet_lst[i].loc)
-        print('\n')
+        #for i in range(self.num_planets):    
+            #print(self.planet_lst[i].name, "simulated location is: " , self.planet_lst[i].loc)
+        #print('\n')
         
-    def two_body_reference(self, num_1 , num_2, t1):
+    def two_body_reference(self, t1, num_1 = 0, num_2 = 1):
         from math import sqrt
         from scipy import integrate
         self.get_data()
@@ -148,31 +148,106 @@ class n_body_simulation():
             curr_theta -= delta
             it += 1 
         x1_new = np.array([r_theta(curr_theta)*np.cos(curr_theta), r_theta(curr_theta)*np.sin(curr_theta)])  
-        
         x2_new = -(m_1/m_2)*(x1_new) +(x_cm+v_cm*t1)
-        print(self.planet_lst[num_1].name, "reference location is: " , x1_new)
-        print(self.planet_lst[num_2].name, "reference location is: " , x2_new)
-        print('\n')
-        theta = np.linspace(0,2*pi,100)
-        res_vec = np.zeros(100)
-        x_vec = np.zeros(100)
-        y_vec = np.zeros(100)
-        for i in range(100):
-            res_vec[i] = r_theta(theta[i])
-            x_vec[i] = res_vec[i]*np.cos(theta[i])
-            y_vec[i] = res_vec[i]*np.sin(theta[i])
-        plt.scatter(x_vec, y_vec,c='red')
+        self.planet_lst[num_1].loc = x1_new
+        self.planet_lst[num_2].loc = x2_new
+        #print(self.planet_lst[num_1].name, "reference location is: " , x1_new)
+        #print(self.planet_lst[num_2].name, "reference location is: " , x2_new)
+        #print('\n')
+        #theta = np.linspace(0,2*pi,100)
+        #res_vec = np.zeros(100)
+        #x_vec = np.zeros(100)
+        #y_vec = np.zeros(100)
+        #for i in range(100):
+        #    res_vec[i] = r_theta(theta[i])
+        #    x_vec[i] = res_vec[i]*np.cos(theta[i])
+        #    y_vec[i] = res_vec[i]*np.sin(theta[i])
+        #plt.scatter(x_vec, y_vec,c='red')
          
 ##########################################################################################################
 ##########################################################################################################
 
-check_two = n_body_simulation("two_body.txt")
-solar_system = n_body_simulation("planets.txt")
-tt = time.time()
-check_two.simulation(19000)
-tt = time.time() - tt
-print("Simulation time: ",tt)
-#check_two.two_body_reference(0,1,1000)
-#solar_system.simulation(1000)
-#solar_system.simulation(1000, alg = "euler")
+# check that the simulation code is working well:
+
+def check_two(n):       
+    check_two = n_body_simulation("two_body.txt")
+    #tt = time.time()
+    check_two.simulation(n)
+    check_two.two_body_reference(n)
+
+#check_two(19000)
+
+##########################################################################################################
+##########################################################################################################
+
+# Plot error (simulation vs reference) to delta_time in
+
+def err_to_del_t(k, alg = "leapfrog"):
+    err = np.zeros(k)
+    for i in range(k):
+        h = 0.1 * 2**(i)
+        check_two = n_body_simulation("two_body.txt", h  = h)
+        check_two.two_body_reference(190000)
+        ref_loc_e = check_two.planet_lst[0].loc
+        ref_loc_s = check_two.planet_lst[1].loc
+        check_two.simulation(190000, alg = alg)
+        sim_loc_e = check_two.planet_lst[0].loc
+        sim_loc_s = check_two.planet_lst[1].loc
+        err[i] = np.linalg.norm(ref_loc_e - sim_loc_e) + np.linalg.norm(ref_loc_s - sim_loc_s)
+        print(err[i])
+    print('\n')    
+    return err
+
+# k = 11
+# err_1_1 = err_to_del_t(k)
+# err_1_2 = err_to_del_t(k, alg = "euler")
+# x_1 = [0.1 * 2**(i) for i in range(k)]
+# figure_1 = plt.figure()
+# figure_1.suptitle('Error to delta time')
+# ax = plt.subplot(1,2,1)
+# figure_1 = plt.plot(x_1[:-2],err_1_1[:-2], color = 'r')
+# plt.title('Leapfrog')
+# ax = plt.subplot(1,2,2)
+# figure_1 = plt.plot(x_1[:-2],err_1_2[:-2], color = 'b')
+# plt.title('Euler')
+
+##########################################################################################################
+##########################################################################################################
+
+# Plot error (leapfrog vs euler) in time
+
+def diff_err_alg(k):
+    err_lf = np.zeros(k+1)
+    err_eu = np.zeros(k+1)
+    diff_err = np.zeros(k+1)
+    check_two = n_body_simulation("two_body.txt")
+    for i in range(k+1):
+        sim_t = 5**(i)
+        check_two.two_body_reference(sim_t)
+        ref_loc_e = check_two.planet_lst[0].loc
+        ref_loc_s = check_two.planet_lst[1].loc
+        check_two.simulation(sim_t)
+        lf_loc_e = check_two.planet_lst[0].loc
+        lf_loc_s = check_two.planet_lst[1].loc
+        err_lf[i] = np.linalg.norm(ref_loc_e - lf_loc_e) + np.linalg.norm(ref_loc_s - lf_loc_s)
+        check_two.simulation(sim_t, alg = "euler")
+        eu_loc_e = check_two.planet_lst[0].loc
+        eu_loc_s = check_two.planet_lst[1].loc
+        err_eu[i] = np.linalg.norm(ref_loc_e - eu_loc_e) + np.linalg.norm(ref_loc_s - eu_loc_s)
+        diff_err[i] = err_eu[i] - err_lf[i]
+        print(diff_err[i])
+    x_2 = [(5**i)/(3600*24) for i in range(k+1)]
+    figure_2 = plt.figure()
+    ax = plt.subplot(1,1,1)
+    figure_2.suptitle('Difference Error between Leapfrog and Euler')
+    figure_2 = plt.plot(x_2,diff_err, color = 'b')
+    ax.set_xlabel('days')
+    return diff_err
+
+# k = 10
+# err_2 = diff_err_alg(k)      
+
+##########################################################################################################
+##########################################################################################################
+
 
