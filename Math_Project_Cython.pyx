@@ -5,7 +5,7 @@ from mpmath import mp
 class Planet():
     """ Holds data on a planet (loc_x,loc_y, v_x, v_y, inclination, m) in the plane """
 
-    def __init__(self, loc_x = 0, loc_y = 0, v_x = 0, v_y = 0, inclination = 0, m = 0, name = ''):
+    def __init__(self, loc_x = 0.0, loc_y = 0.0, v_x = 0.0, v_y = 0.0, inclination = 0, m = 0.0, name = ''):
         """ initialize a body with it's location, velocity, inclination, mass and name """
          
         self.loc = np.array([loc_x, loc_y])
@@ -29,12 +29,14 @@ class n_body_simulation():
     def __init__(self, file_name ,h = 1, dim = 2):
         """ expecting a file name. h is the length of a step in both 
         algoritms and the dimention 2D or 3D to simulate """
+        cdef double G
+        G =  6.67 * pow(10,-11)
         self.file_name = file_name
         self.planet_lst = None
         self.h = h
         self.dim = dim
         self.num_planets = 0
-        self.G = np.float64(6.67 * 10**(-11))
+        self.G = G
     
     def create_planet(self, line, num):
         """ creating each planet with it's data in file. Expecting a line of data and num planet in series """
@@ -124,6 +126,7 @@ class n_body_simulation():
     def a_lst(self):
         """ returns an acceleration list at a specific time. each element
         in res_lst is for the corresponding plantet. """
+        cdef int i, j, dim
         dim = self.dim
         res_lst = np.zeros((self.num_planets, dim))
         if dim == 2 :
@@ -171,7 +174,7 @@ class n_body_simulation():
         a_lst = self.a_lst()
         for i in range(self.num_planets):
             self.planet_lst[i].v += self.h*a_lst[i]
-                
+            
     def simulation(self, sim_time, alg = "leapfrog"):
         """ simulates over sim_time with one of the algorithms.
         updates location and velocity at each step.
@@ -179,42 +182,36 @@ class n_body_simulation():
         data file. 
         The output matrix consists the location for each planet after each step.
         Each planet has 2 or 3 rows (depends on the dimension) for each axis"""
+        cdef int i,k,it
         self.load_data()
         sim_dim = self.dim
         if sim_dim == 3 :
             self.turn_data_3D()
         num_of_iter = round(sim_time / self.h)
-        
         """ prepare a data matrix to return """
         shape = (self.num_planets * sim_dim, num_of_iter + 1)
         data_mat = np.zeros(shape)
         for i in range(self.num_planets):
             data_mat[sim_dim*i:sim_dim*(i+1),0] = self.planet_lst[i].loc
-        
         if (alg == "leapfrog"):
             self.leapfrog_pre_first_step()
             for it in range(1,(num_of_iter+1)):
-                
                 """ Leapfrog step """
                 for k in range(self.num_planets):
                     self.planet_lst[k].loc += self.h*self.planet_lst[k].v
                 a_lst = self.a_lst()
                 for k in range(self.num_planets):
                     self.planet_lst[k].v += self.h*a_lst[k]
-                
                 """ save new locations """
                 for i in range(self.num_planets):
                     data_mat[sim_dim*i:sim_dim*(i+1),it] = self.planet_lst[i].loc
-        
         else:
             for it in range(1, (num_of_iter+1)):
-                
                 """ Euler step """
                 a_lst =  self.a_lst()
                 for k in range(self.num_planets):
                     self.planet_lst[k].loc += self.h*self.planet_lst[k].v
                     self.planet_lst[k].v += self.h*a_lst[k]
-               
                 """ save new locations """
                 for i in range(self.num_planets):
                     data_mat[sim_dim*i:sim_dim*(i+1),it] = self.planet_lst[i].loc
