@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpmath import mp
 import Math_Project as mpj
 
-""" if you use cython, foolow setup.py inctruction 
+""" For using cython, follow instructions in setup.py file 
 un-comment the next line to use the Cython compiled version """
 
 # import Math_Project_Cython as mpj
@@ -22,8 +22,8 @@ def check_sim_time(n, file_name, h = 1, dim = 2):
     print(t2 - t1)
     return res
 
-data_2 = check_sim_time(26000, file_name = "sun_earth.txt", h = 1, dim = 2)
-data_6 = check_sim_time(3600,file_name = "six_planets.txt", h = 1, dim = 2)
+data_2 = check_sim_time(310000, file_name = "sun_earth.txt", dim = 2)
+data_6 = check_sim_time(40000,file_name = "six_planets.txt", dim = 2)
         
 #############################################################################
 #### Plot Error (simulation vs reference) to delta_time in one algorithm ####
@@ -68,7 +68,7 @@ def print_err(jump, limit, relative = False):
     slope1_2, intercept1_2 = np.polyfit(x_axis, err2, 1)
     return (err1, err2, slope1_1, intercept1_1, slope1_2, intercept1_2)
     
-# (err1_1, err1_2, slope1, inp1, slope2, inp2) = print_err(jump = 20, limit = 1200)
+# (err1_1, err1_2, slope_Leapfrog, inp1, slope_Euler, inp2) = print_err(jump = 20, limit = 1200)
 # (err2_1, err2_2, slope1, inp1, slope2, inp2) = print_err(jump=20, limit = 1200, relative = True)
 
 ###############################################################
